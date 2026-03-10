@@ -3,9 +3,4 @@
   publish = "dist"
 
 [functions]
-  included_files = ["netlify/functions/**"]
-
-[[headers]]
-  for = "/api/*"
-  [headers.values]
-    Access-Control-Allow-Origin = "*"
+  node_bundler = "esbuild"
