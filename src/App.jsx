@@ -107,7 +107,7 @@ function App() {
       setLoadingText('Researching requirements...');
       await new Promise(r => setTimeout(r, 700));
       setLoadingText('Building your roadmap...');
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
+      const res = await fetch('/api/generate-roadmap', {
         method: 'POST',
         headers: {'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-request-override':'true'},
         body: JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2000,system:SYSTEM_PROMPT,messages:[{role:'user',content:'Profession: '+profession+'\nCurrently licensed in: '+currentState+', USA\nRelocating to: '+dest+'\n\nProvide the complete JSON roadmap.'}]})
