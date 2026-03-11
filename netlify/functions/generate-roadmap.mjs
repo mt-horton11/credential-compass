@@ -21,8 +21,8 @@ export default async (req) => {
     return new Response(JSON.stringify({ error: "Missing required fields" }), { status: 400 });
   }
   const dest = destType === "international" ? destination : destination + ", USA";
-  const userPrompt = "Profession: " + profession + "\nCurrently licensed in: " + currentState + ", USA\nRelocating to: " + dest + "\n\nSearch the web to find the current, accurate licensing board website and requirements, then provide the complete JSON roadmap with verified URLs.";
-  const SYSTEM_PROMPT = "You are CredentialCompass, an expert clinical licensing advisor. Use web search to find current, accurate licensing board websites and requirements before responding. Respond ONLY with a valid JSON object (no markdown, no backticks, no preamble): {\"timeline\":\"X-Y months\",\"difficulty\":\"Low|Medium|High\",\"language\":\"requirement\",\"governing_body\":\"body name\",\"cost_estimate\":\"cost range\",\"phases\":[{\"phase\":\"name\",\"icon\":\"emoji\",\"duration\":\"time\",\"priority\":\"Critical|Important|Optional\",\"items\":[\"step\"]}],\"tips\":[\"tip\"],\"watch_out\":[\"pitfall\"],\"resources\":[{\"label\":\"name\",\"url\":\"https://...\"}]} Be specific: real org names, exam names, fees. Include visa steps for international. Mention interstate compacts for US. 4-7 phases, 3-6 items each. Only include URLs you have verified exist.";
+  const userPrompt = "Profession: " + profession + "\nCurrently licensed in: " + currentState + ", USA\nRelocating to: " + dest + "\n\nSearch the web to find the current licensing board website, then provide the complete JSON roadmap with verified URLs.";
+  const SYSTEM_PROMPT = "You are CredentialCompass, an expert clinical licensing advisor. Use web search to find current licensing board websites before responding. Respond ONLY with a valid JSON object (no markdown, no backticks, no preamble): {\"timeline\":\"X-Y months\",\"difficulty\":\"Low|Medium|High\",\"language\":\"requirement\",\"governing_body\":\"body name\",\"cost_estimate\":\"cost range\",\"phases\":[{\"phase\":\"name\",\"icon\":\"emoji\",\"duration\":\"time\",\"priority\":\"Critical|Important|Optional\",\"items\":[\"step\"]}],\"tips\":[\"tip\"],\"watch_out\":[\"pitfall\"],\"resources\":[{\"label\":\"name\",\"url\":\"https://...\"}]} Be specific: real org names, exam names, fees. Include visa steps for international. Mention interstate compacts for US. 4-7 phases, 3-6 items each. Only include URLs you have verified exist.";
   try {
     console.log("Calling Anthropic API with web search...");
     const response = await fetch("https://api.anthropic.com/v1/messages", {
@@ -33,10 +33,10 @@ export default async (req) => {
         "anthropic-version": "2023-06-01"
       },
       body: JSON.stringify({
-        model: "claude-haiku-4-5-20251001",
+        model: "claude-sonnet-4-6",
         max_tokens: 4000,
         system: SYSTEM_PROMPT,
-        tools: [{ type: "web_search_20250305", name: "web_search" }],
+        tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 2 }],
         messages: [{ role: "user", content: userPrompt }]
       })
     });
