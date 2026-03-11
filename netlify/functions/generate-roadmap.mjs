@@ -4,6 +4,7 @@ export default async (req) => {
   }
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
+    console.log("ERROR: No API key found");
     return new Response(JSON.stringify({ error: "API key not configured" }), { status: 500 });
   }
   let body;
@@ -23,6 +24,7 @@ Be specific: real org names, exam names, fee amounts. For international moves in
   const userPrompt = `Profession: ${profession}\nCurrently licensed in: ${currentState}, USA\nRelocating to: ${destType === "international" ? destination : `${destination}, USA`}\n\nProvide the complete JSON roadmap.`;
 
   try {
+    console.log("Calling Anthropic API...");
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
@@ -37,22 +39,30 @@ Be specific: real org names, exam names, fee amounts. For international moves in
         messages: [{ role: "user", content: userPrompt }],
       }),
     });
+    console.log("API response status:", response.status);
     const data = await response.json();
     if (!response.ok) {
+      console.log("API error:", JSON.stringify(data));
       return new Response(JSON.stringify({ error: data.error?.message || "API error" }), { status: response.status });
     }
     const rawText = data.content?.map(b => b.text || "").join("") || "";
+    console.log("Raw text received, length:", rawText.length);
+    console.log("First 200 chars:", rawText.substring(0, 200));
     const jsonStr = rawText.trim().replace(/```json|```/g, "").trim();
     const parsed = JSON.parse(jsonStr);
+    console.log("Successfully parsed JSON");
     return new Response(JSON.stringify(parsed), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
   } catch (err) {
+    console.log("CATCH ERROR:", err.message);
     return new Response(JSON.stringify({ error: "Failed to generate roadmap", details: err.message }), { status: 500 });
   }
 };
 
 export const config = {
+  path: "/api/generate-roadmap",
+};= {
   path: "/api/generate-roadmap",
 };
