@@ -2,6 +2,6 @@
   command = "npm install && npm run build"
   publish = "dist"
 
-[functions]
-  directory = "netlify/functions"
-  node_bundler = "esbuild"
+[[edge_functions]]
+  path = "/api/generate-roadmap"
+  function = "generate-roadmap"
