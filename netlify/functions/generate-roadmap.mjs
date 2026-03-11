@@ -10,19 +10,19 @@ export default async (req) => {
   let body;
   try {
     body = await req.json();
-  } catch {
+  } catch(e) {
     return new Response(JSON.stringify({ error: "Invalid request body" }), { status: 400 });
   }
-  const { profession, currentState, destination, destType } = body;
+  const profession = body.profession;
+  const currentState = body.currentState;
+  const destination = body.destination;
+  const destType = body.destType;
   if (!profession || !currentState || !destination) {
     return new Response(JSON.stringify({ error: "Missing required fields" }), { status: 400 });
   }
-  const SYSTEM_PROMPT = `You are CredentialCompass, an expert clinical licensing advisor. Respond ONLY with a valid JSON object (no markdown, no backticks, no preamble):
-{"timeline":"X-Y months","difficulty":"Low|Low-Medium|Medium|High|Very High","language":"language requirement","governing_body":"primary regulatory body","cost_estimate":"cost range","phases":[{"phase":"name","icon":"emoji","duration":"time","priority":"Critical|Important|Optional","items":["step"]}],"tips":["tip"],"watch_out":["pitfall"],"resources":[{"label":"name","url":"https://..."}]}
-Be specific: real org names, exam names, fee amounts. For international moves include visa steps. For US transfers mention interstate compacts. 4-7 phases, 3-6 items each.`;
-
-  const userPrompt = `Profession: ${profession}\nCurrently licensed in: ${currentState}, USA\nRelocating to: ${destType === "international" ? destination : `${destination}, USA`}\n\nProvide the complete JSON roadmap.`;
-
+  const dest = destType === "international" ? destination : destination + ", USA";
+  const userPrompt = "Profession: " + profession + "\nCurrently licensed in: " + currentState + ", USA\nRelocating to: " + dest + "\n\nProvide the complete JSON roadmap.";
+  const SYSTEM_PROMPT = "You are CredentialCompass, an expert clinical licensing advisor. Respond ONLY with a valid JSON object (no markdown, no backticks, no preamble): {\"timeline\":\"X-Y months\",\"difficulty\":\"Low|Medium|High\",\"language\":\"requirement\",\"governing_body\":\"body name\",\"cost_estimate\":\"cost range\",\"phases\":[{\"phase\":\"name\",\"icon\":\"emoji\",\"duration\":\"time\",\"priority\":\"Critical|Important|Optional\",\"items\":[\"step\"]}],\"tips\":[\"tip\"],\"watch_out\":[\"pitfall\"],\"resources\":[{\"label\":\"name\",\"url\":\"https://...\"}]} Be specific: real org names, exam names, fees. Include visa steps for international. Mention interstate compacts for US. 4-7 phases, 3-6 items each.";
   try {
     console.log("Calling Anthropic API...");
     const response = await fetch("https://api.anthropic.com/v1/messages", {
@@ -30,39 +30,37 @@ Be specific: real org names, exam names, fee amounts. For international moves in
       headers: {
         "Content-Type": "application/json",
         "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
+        "anthropic-version": "2023-06-01"
       },
       body: JSON.stringify({
         model: "claude-haiku-4-5-20251001",
         max_tokens: 2000,
         system: SYSTEM_PROMPT,
-        messages: [{ role: "user", content: userPrompt }],
-      }),
+        messages: [{ role: "user", content: userPrompt }]
+      })
     });
-    console.log("API response status:", response.status);
+    console.log("API status:", response.status);
     const data = await response.json();
     if (!response.ok) {
       console.log("API error:", JSON.stringify(data));
-      return new Response(JSON.stringify({ error: data.error?.message || "API error" }), { status: response.status });
+      return new Response(JSON.stringify({ error: "API error" }), { status: response.status });
     }
-    const rawText = data.content?.map(b => b.text || "").join("") || "";
-    console.log("Raw text received, length:", rawText.length);
-    console.log("First 200 chars:", rawText.substring(0, 200));
+    const rawText = data.content ? data.content.map(function(b){ return b.text || ""; }).join("") : "";
+    console.log("Raw length:", rawText.length);
+    console.log("First 200:", rawText.substring(0, 200));
     const jsonStr = rawText.trim().replace(/```json|```/g, "").trim();
     const parsed = JSON.parse(jsonStr);
-    console.log("Successfully parsed JSON");
+    console.log("Parse success");
     return new Response(JSON.stringify(parsed), {
       status: 200,
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json" }
     });
-  } catch (err) {
+  } catch(err) {
     console.log("CATCH ERROR:", err.message);
-    return new Response(JSON.stringify({ error: "Failed to generate roadmap", details: err.message }), { status: 500 });
+    return new Response(JSON.stringify({ error: "Failed", details: err.message }), { status: 500 });
   }
 };
 
 export const config = {
-  path: "/api/generate-roadmap",
-};= {
-  path: "/api/generate-roadmap",
+  path: "/api/generate-roadmap"
 };
