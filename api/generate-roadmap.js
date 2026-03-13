@@ -54,8 +54,24 @@ export default async function handler(req, res) {
       ? data.content.filter(b => b.type === "text").map(b => b.text || "").join("")
       : "";
 
+    if (!rawText || rawText.trim().length === 0) {
+      return res.status(500).json({ 
+        error: "Empty response", 
+        content_types: data.content ? data.content.map(b => b.type) : [] 
+      });
+    }
+
     const jsonStr = rawText.trim().replace(/```json|```/g, "").trim();
-    const parsed = JSON.parse(jsonStr);
+
+    let parsed;
+    try {
+      parsed = JSON.parse(jsonStr);
+    } catch(parseErr) {
+      return res.status(500).json({ 
+        error: "JSON parse failed", 
+        raw: rawText.substring(0, 500) 
+      });
+    }
 
     return res.status(200).json(parsed);
 
