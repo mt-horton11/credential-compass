@@ -37,7 +37,7 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-6",
-        max_tokens: 4000,
+        max_tokens: 8000,
         system: SYSTEM_PROMPT,
         tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 1 }],
         messages: [{ role: "user", content: userPrompt }]
