@@ -109,10 +109,9 @@ export default function App() {
     if (!profession || !currentState || !destination) return;
     setLoading(true); setError(""); setRoadmap(null); setStep(4); setChecked({});
     if (topRef.current) topRef.current.scrollIntoView({ behavior: "smooth" });
-    const dest = destType === "international" ? destination : destination + ", USA";
     const messages = [
-      "Searching for licensing requirements...",
-      "Verifying board websites...",
+      "Searching current licensing requirements...",
+      "Verifying requirements with official sources...",
       "Building your personalized roadmap...",
       "Almost there..."
     ];
@@ -121,18 +120,48 @@ export default function App() {
     const interval = setInterval(() => {
       msgIdx = Math.min(msgIdx + 1, messages.length - 1);
       setLoadingText(messages[msgIdx]);
-    }, 6000);
+    }, 8000);
     try {
       const res = await fetch("/api/generate-roadmap", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ profession, currentState, destination, destType }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "API error");
-      setRoadmap(data);
-      setExpandedPhase(0);
-      setExpandedSection("checklist");
+
+      if (!res.ok) throw new Error("API error");
+
+      // Read the streaming response
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop(); // Keep incomplete line in buffer
+
+        for (const line of lines) {
+          if (line.startsWith("data: ")) {
+            const data = line.slice(6).trim();
+            try {
+              const parsed = JSON.parse(data);
+              if (parsed.type === "result" && parsed.data) {
+                setRoadmap(parsed.data);
+                setExpandedPhase(0);
+                setExpandedSection("checklist");
+              }
+              if (parsed.type === "error") {
+                throw new Error(parsed.message);
+              }
+            } catch(e) {
+              // Skip unparseable lines
+            }
+          }
+        }
+      }
     } catch(err) {
       setError("Something went wrong. Please try again.");
       setStep(3);
