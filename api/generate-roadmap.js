@@ -61,7 +61,9 @@ export default async function handler(req, res) {
       });
     }
 
-    const jsonStr = rawText.trim().replace(/```json|```/g, "").trim();
+    const start = rawText.indexOf("{");
+    const end = rawText.lastIndexOf("}");
+    const jsonStr = start !== -1 && end !== -1 ? rawText.substring(start, end + 1) : rawText.trim().replace(/```json|```/g, "").trim();
 
     let parsed;
     try {
